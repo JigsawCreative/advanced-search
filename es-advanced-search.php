@@ -21,10 +21,14 @@ if ( file_exists( ESAS_PATH . 'vendor/autoload.php' ) ) {
 }
 
 use ESAdvSearch\API\ESAS_BatchesAPI;
+use ESAdvSearch\API\ESAS_FiltersAPI;
 use ESAdvSearch\Assets\ESAS_Enqueue;
 
 // Bootstrap main class
 add_action( 'plugins_loaded', function() {
-    ESAS_BatchesAPI::init();
+
     ESAS_Enqueue::init();
+    ESAS_BatchesAPI::init();
+    ESAS_FiltersAPI::init();
+
 });
