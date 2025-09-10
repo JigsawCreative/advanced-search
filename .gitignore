@@ -1,0 +1,13 @@
+# WordPress core
+wp-content/
+wp-config.php
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+*.log
+*.env
+
+# Node / build files if using npm/Gulp
+node_modules/
+dist/

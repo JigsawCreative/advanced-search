@@ -1,0 +1,47 @@
+@keyframes fadeInOpacity {
+	0% {
+		opacity: 0.5;
+	}
+
+	100% {
+		opacity: 1;
+	}
+}
+
+@keyframes fadeOutOpacity {
+	0% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0.5;
+	}
+}
+
+
+/** Sorting transition **/
+.product-list>li {
+	opacity: 1;
+	animation-name: fadeInOpacity;
+	animation-iteration-count: 1;
+	animation-timing-function: ease-in;
+	animation-duration: 0.25s;
+}
+
+/* Hide effect (fade out and shrink) */
+li.hide {
+	opacity: 0;
+	animation-name: fadeOutOpacity;
+	pointer-events: none;
+	/* Prevent interaction with hidden items */
+}
+
+/* Show effect (fade in and slide up) */
+li.show {
+	opacity: 1;
+	animation-name: fadeInOpacity;
+}
+
+.product-list>li.displaynoneclass {
+	display: none;
+}
