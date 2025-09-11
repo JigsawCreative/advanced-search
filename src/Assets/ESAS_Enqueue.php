@@ -13,6 +13,9 @@ class ESAS_Enqueue {
 
     public static function enqueue_scripts() {
 
+        // Enqueue search JS on all pages
+        wp_enqueue_script( 'advanced-search', plugin_dir_url(__FILE__) . '/../../../assets/js/search.js', [], ESAS_VERSION, true );
+
         // Enqueue tile filter JS
         wp_enqueue_script( 'tile-filter', plugin_dir_url(__FILE__) . '/../../../assets/js/TileFilter.js', [], ESAS_VERSION, true );
 
