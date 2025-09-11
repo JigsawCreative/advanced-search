@@ -2,65 +2,96 @@
 
 namespace ESAdvSearch\API;
 
-use ESAdvSearch\API\ESAS_BatchesAPI;
 use WP_REST_Request;
 
+/**
+ * Class ESAS_FiltersAPI
+ * Handles fetching and formatting tile filter data for the front-end.
+ */
 class ESAS_FiltersAPI {
 
+    /**
+     * Initialize REST API route and cache clearing hooks.
+     */
     public static function init() {
-
         add_action('rest_api_init', [__CLASS__, 'register_routes']);
-
-        // Clear cache on relevant post changes
         add_action('save_post_batch', [__CLASS__, 'clear_cache']);
         add_action('trashed_post', [__CLASS__, 'clear_cache']);
         add_action('deleted_post', [__CLASS__, 'clear_cache']);
     }
 
+    /**
+     * Register REST route for filters.
+     */
     public static function register_routes() {
         register_rest_route('custom/v1', '/es-advanced-search-filters', [
-            'methods' => 'GET',
+            'methods'  => 'GET',
             'callback' => [__CLASS__, 'get_filters'],
             'permission_callback' => '__return_true',
         ]);
     }
 
+    /**
+     * Clear filter cache.
+     *
+     * @param int|null $post_id
+     */
     public static function clear_cache($post_id = null) {
-        // Delete all category/effect-specific transients
-        global $wpdb;
-        $keys = $wpdb->get_col("
-            SELECT option_name FROM {$wpdb->options}
-            WHERE option_name LIKE '_transient_esas_products_json%'
-        ");
-        foreach ($keys as $key) {
-            $transient = str_replace('_transient_', '', $key);
-            delete_transient($transient);
-        }
-        delete_transient('esas_filters_json'); // optional main cache
+        delete_transient('esas_filters_json');
     }
 
+    /**
+     * Main REST API callback to get filters.
+     *
+     * @param WP_REST_Request $request
+     * @return \WP_REST_Response
+     */
     public static function get_filters(WP_REST_Request $request) {
         $category = $request->get_param('category') ?? '';
         $effect   = $request->get_param('effect') ?? '';
 
-        $transient_key = 'esas_filters_json_' . ($category ?: 'all') . '_' . ($effect ?: 'all');
+        $transient_key = self::get_transient_key($category, $effect);
         $cached = get_transient($transient_key);
         if ($cached !== false) {
             return rest_ensure_response($cached);
         }
 
-        // --- Pull from batches cache instead of remote GET ---
+        $tiles = self::get_tiles($category, $effect);
+        $filters = self::build_filters($tiles);
+
+        set_transient($transient_key, $filters, defined('WP_DEBUG') && WP_DEBUG ? 600 : 30 * DAY_IN_SECONDS);
+
+        return rest_ensure_response($filters);
+    }
+
+    /**
+     * Generate transient key for caching.
+     */
+    private static function get_transient_key($category, $effect) {
+        return 'esas_filters_json_' . ($category ?: 'all') . '_' . ($effect ?: 'all');
+    }
+
+    /**
+     * Get tile data from batches cache or rebuild if missing.
+     */
+    private static function get_tiles($category, $effect) {
         $batches_key = ESAS_BatchesAPI::get_cache_key($category, $effect);
         $tiles = get_transient($batches_key);
 
-        // If no cache, build fresh
         if ($tiles === false) {
             $tiles = ESAS_BatchesAPI::build_batches($category, $effect);
             set_transient($batches_key, $tiles, defined('WP_DEBUG') && WP_DEBUG ? 600 : 30 * DAY_IN_SECONDS);
         }
 
+        return $tiles;
+    }
+
+    /**
+     * Build filters array from tile data.
+     */
+    private static function build_filters(array $tiles) {
         $filters = [];
-        $filter_keys = ['category', 'effects', 'colour', 'finish', 'sizes', 'thickness'];
+        $filter_keys = ['category', 'effects', 'colour', 'finish', 'sizes', 'thickness', 'quantity'];
 
         foreach ($tiles as $tile) {
             foreach ($filter_keys as $key) {
@@ -72,15 +103,67 @@ class ESAS_FiltersAPI {
 
         foreach ($filters as $key => $values) {
             $unique = array_unique(array_map('strtolower', $values));
-            $filters[$key] = array_values(array_map(fn($v) => [
-                'id'   => sanitize_title($v),
-                'name' => $v,
-            ], $unique));
+            $filters[$key] = $key === 'sizes'
+                ? self::format_and_sort_sizes($unique)
+                : self::format_generic_filter($unique, $key);
         }
 
-        set_transient($transient_key, $filters, defined('WP_DEBUG') && WP_DEBUG ? 600 : 30 * DAY_IN_SECONDS);
+        // After collecting $filters['quantity'] from tiles
+        $filters['quantity'] = [
+            [ 'id' => 'sqm-0-1',    'name' => '0-1 sqm' ],
+            [ 'id' => 'sqm-1-5',    'name' => '1-5 sqm' ],
+            [ 'id' => 'sqm-5-10',   'name' => '5-10 sqm' ],
+            [ 'id' => 'sqm-10-20',  'name' => '10-20 sqm' ],
+            [ 'id' => 'sqm-20-plus','name' => '20+ sqm' ],
+        ];
 
-        return rest_ensure_response($filters);
+        return $filters;
     }
 
+    /**
+     * Format and sort size filters.
+     *
+     * @param array $sizes Raw size strings (e.g., size-1200x1200)
+     * @return array Formatted size array with id and label
+     */
+    private static function format_and_sort_sizes(array $sizes) {
+        $sizes_map = [];
+
+        foreach ($sizes as $size) {
+            $size_clean = str_replace('size-', '', $size);
+            $dims = array_map('intval', explode('x', $size_clean));
+            sort($dims);
+            $sizes_map[] = [
+                'max' => $dims[1],
+                'min' => $dims[0],
+                'original' => $size_clean
+            ];
+        }
+
+        usort($sizes_map, function($a, $b) {
+            return $b['max'] <=> $a['max'] ?: $b['min'] <=> $a['min'];
+        });
+
+        return array_map(function($s) {
+            return [
+                'id'   => 'size-' . $s['original'],
+                'name' => str_replace('x', ' x ', $s['original'])
+            ];
+        }, $sizes_map);
+    }
+
+    /**
+     * Format generic filters like colour, finish, thickness.
+     *
+     * @param array $values
+     * @param string $key
+     * @return array
+     */
+    private static function format_generic_filter(array $values, string $key) {
+        return array_map(function($v) use ($key) {
+            $id = sanitize_title($v);
+            $name = $key === 'thickness' ? str_replace('thickness-', '', $id) . 'mm' : ucfirst($v);
+            return ['id' => $id, 'name' => $name];
+        }, $values);
+    }
 }

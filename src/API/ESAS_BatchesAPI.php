@@ -147,24 +147,26 @@ class ESAS_BatchesAPI {
         // Get effects data (returns array, we only want one entry)
         $effects = wp_get_post_terms($batch_id, 'effect', ['fields' => 'names']);
 
-        // Add only the fields MixItUp needs
+        // Add only the fields needed is reference JSON
         $data = [
-            'id'        => $product->get_id(),
-            'title'     => $product->get_name(),
-            'price'     => $product->get_price(),
-            'quantity'  => $product->get_stock_quantity(),
-            'image'     => wp_get_attachment_image_url($product->get_image_id(), 'medium'),
-            'effects'   => !empty($effects) ? $effects[0] : null,
-            'colour'    => $acf_fields['colour'] ?? null,
-            'finish'    => $acf_fields['finish'] ?? null,
-            'thickness' => !empty($acf_fields['thickness']) ? 'thickness-' . $acf_fields['thickness'] : null,
-            'sizes'     => !empty($acf_fields['dimensions']) ? 'size-' . strtolower(str_replace(' ', '', $acf_fields['dimensions'])) : null,
-            'factory'   => $acf_fields['factory_name'] ?? null,
-            'menu_order'=> get_post_field('menu_order', $batch_id),
+            'id'            => $product->get_id(),
+            'title'         => $product->get_name(),
+            'price'         => $product->get_price(),
+            'quantity'      => self::getSqmBand($acf_fields['sqm']),
+            'image'         => wp_get_attachment_image_url($product->get_image_id(), 'medium'),
+            'effects'       => !empty($effects) ? $effects[0] : null,
+            'colour'        => $acf_fields['colour'] ?? null,
+            'finish'        => $acf_fields['finish'] ?? null,
+            'thickness'     => !empty($acf_fields['thickness']) ? 'thickness-' . $acf_fields['thickness'] : null,
+            'sizes'         => !empty($acf_fields['dimensions']) ? 'size-' . strtolower(str_replace(' ', '', $acf_fields['dimensions'])) : null,
+            'factory'       => $acf_fields['factory_name'] ?? null,
+            'product_code'  => $acf_fields['product_code'] ?? null,
+            'sqm'           => $acf_fields['sqm'] ?? null,
+            'menu_order'    => get_post_field('menu_order', $batch_id),
         ];
 
         // Lowercase string fields
-        foreach (['effects', 'colour', 'finish', 'thickness', 'sizes', 'title', 'factory'] as $field) {
+        foreach (['effects', 'colour', 'finish', 'thickness', 'sizes', 'title', 'factory', 'product_code', 'sqm'] as $field) {
             if (!empty($data[$field]) && is_string($data[$field])) {
                 $data[$field] = strtolower($data[$field]);
             }
@@ -172,4 +174,13 @@ class ESAS_BatchesAPI {
 
         return $data;
     }
+
+    protected static function getSqmBand(float $sqm) {
+        if ($sqm <= 1) return 'sqm-0-1';
+        if ($sqm <= 5) return 'sqm-1-5';
+        if ($sqm <= 10) return 'sqm-5-10';
+        if ($sqm <= 20) return 'sqm-10-20';
+        return 'sqm-20-plus';
+    }
+
 }
