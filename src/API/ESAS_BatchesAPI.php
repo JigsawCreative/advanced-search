@@ -170,9 +170,22 @@ class ESAS_BatchesAPI {
 
 
     protected static function getSqmBand( float $sqm ): string {
-        foreach ( SQM_BANDS as $id => $data ) {
+
+        $sqmBands = [
+            // id       => [ max sqm, label ]
+            'sqm-0-1'     => [ 'max' => 1,  'name' => '0-1 sqm'   ],
+            'sqm-1-5'     => [ 'max' => 5,  'name' => '1-5 sqm'   ],
+            'sqm-5-10'    => [ 'max' => 10, 'name' => '5-10 sqm'  ],
+            'sqm-10-20'   => [ 'max' => 20, 'name' => '10-20 sqm' ],
+            'sqm-20-30'   => [ 'max' => 30, 'name' => '20-30 sqm' ],
+            'sqm-30-40'   => [ 'max' => 40, 'name' => '30-40 sqm' ],
+            'sqm-40-50'   => [ 'max' => 40, 'name' => '40-50 sqm' ],
+            'sqm-50-plus' => [ 'max' => null, 'name' => '50+ sqm' ],
+        ];
+
+        foreach ( $sqmBands as $id => $band ) {
             // skip the “50+” row which has no max
-            if ( isset( $data['max'] ) && $sqm <= $data['max'] ) {
+            if ( isset( $band['max'] ) && $sqm <= $band['max'] ) {
                 return $id;
             }
         }
