@@ -50,9 +50,6 @@ class ESAS_BatchesAPI {
         // Cache it (10 min dev, 30 days prod)
         set_transient($cache_key, $batches, defined('WP_DEBUG') && WP_DEBUG ? 10 * MINUTE_IN_SECONDS : 30 * DAY_IN_SECONDS);
 
-        // Trigger creation of corresponding filters transient
-        ESAS_FiltersAPI::get_filters(new WP_REST_Request(), $category);
-
         // Return JSON response
         return rest_ensure_response($batches);
     }
@@ -137,6 +134,9 @@ class ESAS_BatchesAPI {
         // Get all ACF fields for batch (single DB call)
         $acf_fields = get_fields($batch_id);
 
+        // Remove whitespace from $acf_field (entered by hand in WP admin)
+        $acf_trim = array_map(fn($v) => trim($v), get_fields($batch_id));
+
         // Get effects data (returns array, we only want one entry)
         $effects = wp_get_post_terms($batch_id, 'effect', ['fields' => 'names']);
 
@@ -145,16 +145,16 @@ class ESAS_BatchesAPI {
             'id'            => $product->get_id(),
             'title'         => $product->get_name(),
             'price'         => $product->get_price(),
-            'quantity'      => self::getSqmBand($acf_fields['sqm']),
+            'quantity'      => self::getSqmBand($acf_trim['sqm']),
             'image'         => wp_get_attachment_image_url($product->get_image_id(), 'medium'),
             'effects'       => !empty($effects) ? $effects[0] : null,
-            'colour'        => $acf_fields['colour'] ?? null,
-            'finish'        => $acf_fields['finish'] ?? null,
-            'thickness'     => !empty($acf_fields['thickness']) ? 'thickness-' . $acf_fields['thickness'] : null,
-            'sizes'         => !empty($acf_fields['dimensions']) ? 'size-' . strtolower(str_replace(' ', '', $acf_fields['dimensions'])) : null,
-            'factory'       => $acf_fields['factory_name'] ?? null,
-            'product_code'  => $acf_fields['product_code'] ?? null,
-            'sqm'           => $acf_fields['sqm'] ?? null,
+            'colour'        => $acf_trim['colour'] ?? null,
+            'finish'        => $acf_trim['finish'] ?? null,
+            'thickness'     => !empty($acf_trim['thickness']) ? $acf_trim['thickness'] . 'mm' : null,
+            'sizes'         => $acf_trim['dimensions'] ?? null,
+            'factory'       => $acf_trim['factory_name'] ?? null,
+            'product_code'  => $acf_trim['product_code'] ?? null,
+            'sqm'           => $acf_trim['sqm'] ?? null,
             'menu_order'    => get_post_field('menu_order', $batch_id),
         ];
 
