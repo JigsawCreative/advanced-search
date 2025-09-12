@@ -4,53 +4,44 @@ namespace ESAdvSearch\Filters;
 
 class ESAS_Filters {
 
-    protected $category;
+    public static function determinePageType()
 
-    public function __construct() {
-        // Determine context (same as before)
-        $this->category = is_category()
-            ? get_queried_object()->term_id
-            : strtolower(get_field('mixitup_data_filter'));
+    {
+
+        if(is_category()) {
+
+            //if the current page is a taxonomy template, return category name
+            return get_queried_object()->term_id;
+
+        } else if(is_page_template('grouped-products.php')) {
+
+            //if page is using grouped products template return 'grouped-products'
+            //retrieve category slug from ACF field
+            return get_field('mixitup_data_filter');
+
+        }
+
     }
 
     /**
-     * Build filters array directly from the REST endpoint JSON
+     * Retrieve filters for the current page/category.
+     * Falls back to global filters if a category-specific transient is missing.
      */
-    public function getFiltersFromEndpoint() {
+    public static function getFiltersForPage() {
 
-        // Call our batches endpoint; add category/effect if needed
-        $endpoint = rest_url('custom/v1/es-advanced-search-filters');
+        $category_key = self::determinePageType();
 
-        $args = [];
-        if ($this->category && $this->category !== 'all' && $this->category !== 'joblot') {
-            // If you want to filter by taxonomy slug rather than ID, adjust here
-            $args['category'] = $this->category;
+        // Build transient key: esas_filters_json_{slug} or 'all'
+        $key = 'esas_filters_json_' . ($category_key ?: 'all');
+
+        // Try category-specific filters first
+        $filters = get_transient($key);
+
+        if ($filters === false) {
+            // Fallback to global
+            $filters = get_transient('esas_filters_json_all');
         }
 
-        if (!empty($args)) {
-            $endpoint = add_query_arg($args, $endpoint);
-        }
-
-        $response = wp_remote_get($endpoint);
-
-        if (is_wp_error($response)) {
-            return []; // Bail gracefully if endpoint fails
-        }
-
-        $body = wp_remote_retrieve_body($response);
-        $filters = json_decode($body, true);
-
-        if (empty($filters) || !is_array($filters)) {
-            return [];
-        }
-
-         // Hide effects filter if only one effect exists
-        if (isset($filters['effects']) && count($filters['effects']) <= 1) {
-            unset($filters['effects']);
-        }
-
-        return $filters;
-        
+        return is_array($filters) ? $filters : [];
     }
-
 }

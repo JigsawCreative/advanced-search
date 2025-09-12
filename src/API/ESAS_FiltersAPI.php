@@ -46,17 +46,17 @@ class ESAS_FiltersAPI {
      * @param WP_REST_Request $request
      * @return \WP_REST_Response
      */
-    public static function get_filters(WP_REST_Request $request) {
-        $category = $request->get_param('category') ?? '';
-        $effect   = $request->get_param('effect') ?? '';
+    public static function get_filters(WP_REST_Request $request, $category = "") {
 
-        $transient_key = self::get_transient_key($category, $effect);
+        //$category = $request->get_param('category') ?? '';
+
+        $transient_key = self::get_transient_key($category);
         $cached = get_transient($transient_key);
         if ($cached !== false) {
             return rest_ensure_response($cached);
         }
 
-        $tiles = self::get_tiles($category, $effect);
+        $tiles = self::get_tiles($category);
         $filters = self::build_filters($tiles);
 
         set_transient($transient_key, $filters, defined('WP_DEBUG') && WP_DEBUG ? 600 : 30 * DAY_IN_SECONDS);
@@ -67,19 +67,25 @@ class ESAS_FiltersAPI {
     /**
      * Generate transient key for caching.
      */
-    private static function get_transient_key($category, $effect) {
-        return 'esas_filters_json_' . ($category ?: 'all') . '_' . ($effect ?: 'all');
+    private static function get_transient_key($category = '') {
+
+        if ($category) {
+            return 'esas_filters_json_' . $category;
+        } else {
+            return 'esas_filters_json_all';
+        }
+        
     }
 
     /**
      * Get tile data from batches cache or rebuild if missing.
      */
-    private static function get_tiles($category, $effect) {
-        $batches_key = ESAS_BatchesAPI::get_cache_key($category, $effect);
+    private static function get_tiles($category) {
+        $batches_key = ESAS_BatchesAPI::get_cache_key($category);
         $tiles = get_transient($batches_key);
 
         if ($tiles === false) {
-            $tiles = ESAS_BatchesAPI::build_batches($category, $effect);
+            $tiles = ESAS_BatchesAPI::build_batches($category);
             set_transient($batches_key, $tiles, defined('WP_DEBUG') && WP_DEBUG ? 600 : 30 * DAY_IN_SECONDS);
         }
 
@@ -108,14 +114,12 @@ class ESAS_FiltersAPI {
                 : self::format_generic_filter($unique, $key);
         }
 
-        // After collecting $filters['quantity'] from tiles
-        $filters['quantity'] = [
-            [ 'id' => 'sqm-0-1',    'name' => '0-1 sqm' ],
-            [ 'id' => 'sqm-1-5',    'name' => '1-5 sqm' ],
-            [ 'id' => 'sqm-5-10',   'name' => '5-10 sqm' ],
-            [ 'id' => 'sqm-10-20',  'name' => '10-20 sqm' ],
-            [ 'id' => 'sqm-20-plus','name' => '20+ sqm' ],
-        ];
+        // // After collecting $filters['quantity'] from tiles
+        $filters['quantity'] = array_map(
+            fn($id, $data) => [ 'id' => $id, 'name' => $data['name'] ],
+            array_keys( SQM_BANDS ),
+            SQM_BANDS
+        );
 
         return $filters;
     }

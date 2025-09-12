@@ -33,10 +33,10 @@ class TileFilter {
         this.liveTextSearch();
     }
 
-    async loadBatches(category = '') {
+    async loadBatches() {
         // Build endpoint URL dynamically
-        const endpoint = category 
-            ? `${ESAS.endpoint}?category=${category}`
+        const endpoint = ESAS.category 
+            ? `${ESAS.endpoint}?category=${ESAS.category}`
             : ESAS.endpoint;
 
         try {
@@ -429,7 +429,7 @@ class TileFilter {
     showHideTiles = () => {
 
         const currentPageParents = this.getCurrentPageParents();
-        console.log(currentPageParents);
+
         const tiles = document.querySelectorAll('.product-list > li');
 
         tiles.forEach(tile => {

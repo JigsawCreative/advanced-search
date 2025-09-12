@@ -31,11 +31,12 @@ class ESAS_BatchesAPI {
     }
 
     public static function get_all_batches(WP_REST_Request $request) {
+        
         // Check for params in request
         $category = $request->get_param('category');
-        $effect   = $request->get_param('effect');
 
-        $cache_key = self::get_cache_key($category, $effect);
+        // Create cache key for product transient
+        $cache_key = self::get_cache_key($category);
 
         // Check if cached values are set and return if they are
         $cached = get_transient($cache_key);
@@ -44,32 +45,33 @@ class ESAS_BatchesAPI {
         }
 
         // Build products array
-        $batches = self::build_batches($category, $effect);
+        $batches = self::build_batches($category);
 
         // Cache it (10 min dev, 30 days prod)
         set_transient($cache_key, $batches, defined('WP_DEBUG') && WP_DEBUG ? 10 * MINUTE_IN_SECONDS : 30 * DAY_IN_SECONDS);
+
+        // Trigger creation of corresponding filters transient
+        ESAS_FiltersAPI::get_filters(new WP_REST_Request(), $category);
 
         // Return JSON response
         return rest_ensure_response($batches);
     }
 
-    public static function get_cache_key($category = null, $effect = null) {
+    public static function get_cache_key($category = null) {
+
         $cache_key = 'esas_products_json';
 
         // Include params in transient cache key if set
         if ($category) {
             $cache_key .= '_cat_' . sanitize_key($category);
         }
-        if ($effect) {
-            $cache_key .= '_effect_' . sanitize_key($effect);
-        }
 
         return $cache_key;
     }
 
-    public static function build_batches($category = null, $effect = null) {
+    public static function build_batches($category = null) {
         // Populate args for current query
-        $args = self::get_query_args($category, $effect);
+        $args = self::get_query_args($category);
 
         // New WP_Query
         $query = new WP_Query($args);
@@ -85,7 +87,7 @@ class ESAS_BatchesAPI {
         return $batches;
     }
 
-    private static function get_query_args($category = null, $effect = null) {
+    private static function get_query_args($category = null) {
         $args = [
             'post_type'      => 'batch',
             'post_status'    => 'publish',
@@ -114,15 +116,6 @@ class ESAS_BatchesAPI {
                 'taxonomy' => 'category',
                 'field'    => 'slug',
                 'terms'    => sanitize_text_field($category),
-            ];
-        }
-
-        // Add effect to query if set
-        if ($effect) {
-            $tax_query[] = [
-                'taxonomy' => 'effect',
-                'field'    => 'slug',
-                'terms'    => sanitize_text_field($effect),
             ];
         }
 
@@ -175,12 +168,17 @@ class ESAS_BatchesAPI {
         return $data;
     }
 
-    protected static function getSqmBand(float $sqm) {
-        if ($sqm <= 1) return 'sqm-0-1';
-        if ($sqm <= 5) return 'sqm-1-5';
-        if ($sqm <= 10) return 'sqm-5-10';
-        if ($sqm <= 20) return 'sqm-10-20';
-        return 'sqm-20-plus';
+
+    protected static function getSqmBand( float $sqm ): string {
+        foreach ( SQM_BANDS as $id => $data ) {
+            // skip the “50+” row which has no max
+            if ( isset( $data['max'] ) && $sqm <= $data['max'] ) {
+                return $id;
+            }
+        }
+        // if nothing matched, return the final “plus” band
+        return 'sqm-50-plus';
     }
+
 
 }
