@@ -211,11 +211,17 @@ class TileFilter {
 
                 // Add search value to state
                 this.state.activeFilters['textsearch'] = [query];
+
+                // Add mixitup-control-active to search input as we have query value
+                this.filterInput.classList.add('mixitup-control-active');
                 
             } else {
 
                 // Remove key if query is empty
                 delete this.state.activeFilters['textsearch']; 
+
+                // Remove mixitup-control-active from search input as we have no query
+                this.filterInput.classList.remove('mixitup-control-active');
             }
 
             // Update hash based on selection
@@ -239,6 +245,7 @@ class TileFilter {
     }; 
 
     setupResetButton = () => {
+        console.log(Object.keys(this.state.activeFilters));
         const resetBtn = document.getElementById('reset-filters');
         if (!resetBtn) return;
 
