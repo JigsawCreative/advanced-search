@@ -131,9 +131,6 @@ class ESAS_BatchesAPI {
         // Get WooCommerce data for batch
         $product = wc_get_product($batch_id);
 
-        // Get all ACF fields for batch (single DB call)
-        $acf_fields = get_fields($batch_id);
-
         // Remove whitespace from $acf_field (entered by hand in WP admin)
         $acf_trim = array_map(fn($v) => trim($v), get_fields($batch_id));
 

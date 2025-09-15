@@ -23,7 +23,7 @@ class ESAS_Enqueue {
         $category_value = '';
         if ( is_category() ) {
             // taxonomy template – use category term_id or slug
-            $category_value = (string) get_queried_object()->term_id; // or ->slug if you prefer
+            $category_value = (string) get_queried_object()->slug;
         } elseif ( is_page_template( 'grouped-products.php' ) ) {
             // grouped-products template – use ACF field value
             $category_value = (string) get_field( 'mixitup_data_filter' );

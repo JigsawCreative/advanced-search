@@ -38,7 +38,7 @@ class TileFilter {
         const endpoint = ESAS.category 
             ? `${ESAS.endpoint}?category=${ESAS.category}`
             : ESAS.endpoint;
-
+console.log(ESAS.category);
         try {
             const res = await fetch(endpoint, {
                 method: 'GET',
@@ -245,7 +245,7 @@ class TileFilter {
     }; 
 
     setupResetButton = () => {
-        console.log(Object.keys(this.state.activeFilters));
+
         const resetBtn = document.getElementById('reset-filters');
         if (!resetBtn) return;
 
