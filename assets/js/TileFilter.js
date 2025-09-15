@@ -582,7 +582,7 @@ class TileFilter {
 
         const displayText = totalParents > 0
             ? `${startIndex} to ${endIndex} of ${totalParents}`
-            : `0 items`;
+            : "0";
 
         document.querySelectorAll('.mixitup-page-stats')
             .forEach(resultBox => resultBox.textContent = displayText);
