@@ -34,28 +34,22 @@ class TileFilter {
     }
 
     async loadBatches() {
+        
         // Build endpoint URL dynamically
         const endpoint = ESAS.category 
             ? `${ESAS.endpoint}?category=${ESAS.category}`
             : ESAS.endpoint;
-console.log(ESAS.category);
+
         try {
-            const res = await fetch(endpoint, {
-                method: 'GET',
-                headers: {
-                    'X-WP-Nonce': ESAS.nonce
-                }
-            });
+            const res = await fetch(endpoint, { method: 'GET' });
 
             if (!res.ok) throw new Error('Network response was not ok');
 
             const data = await res.json();
             console.log(data);
 
-            // Save returned batch data to class variable
             this.tiles = data;
 
-            // Check initial state of filters
             this.loadInitialState();
 
         } catch (err) {

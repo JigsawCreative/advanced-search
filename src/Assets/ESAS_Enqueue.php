@@ -32,7 +32,6 @@ class ESAS_Enqueue {
         // Pass REST endpoint URL and nonce if needed
         wp_localize_script('tile-filter', 'ESAS', [
             'endpoint' => esc_url(rest_url('custom/v1/es-advanced-search')),
-            'nonce'    => wp_create_nonce('wp_rest'),
             'category'  => $category_value ?: ''
         ]);
 
