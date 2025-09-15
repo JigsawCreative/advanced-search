@@ -148,7 +148,7 @@ class ESAS_BatchesAPI {
             'colour'        => $acf_trim['colour'] ?? null,
             'finish'        => $acf_trim['finish'] ?? null,
             'thickness'     => !empty($acf_trim['thickness']) ? $acf_trim['thickness'] . 'mm' : null,
-            'sizes'         => $acf_trim['dimensions'] ?? null,
+            'sizes' => isset($acf_trim['dimensions']) ? str_replace(' ', '', $acf_trim['dimensions']) : null,
             'factory'       => $acf_trim['factory_name'] ?? null,
             'product_code'  => $acf_trim['product_code'] ?? null,
             'sqm'           => $acf_trim['sqm'] ?? null,

@@ -34,7 +34,7 @@ class TileFilter {
     }
 
     async loadBatches() {
-        
+
         // Build endpoint URL dynamically
         const endpoint = ESAS.category 
             ? `${ESAS.endpoint}?category=${ESAS.category}`
@@ -293,23 +293,44 @@ class TileFilter {
             return [...this.tiles].sort((a,b) => a.menu_order - b.menu_order);
         }
 
+        // Filter tiles based on all active filters while guarding against null/undefined tile values.
         const filteredParents = this.tiles.filter(tile =>
             Object.entries(this.state.activeFilters).every(([key, value]) => {
+
+                // No active values for this key → always pass.
                 if (!value?.length) return true;
 
                 if (key === 'textsearch') {
+                    // Join all tile values into a single string and search
                     const text = Object.values(tile).join(" ").toLowerCase();
                     const valueWords = value[0].split(/\s+/);
                     return valueWords.every(word => text.includes(word));
+
                 } else if (key === 'decor') {
-                    return tile[key].includes('bookmatch');
-                } else {
+                    // Guard: ensure tile[key] is an array before using .includes()
                     return Array.isArray(tile[key])
-                        ? tile[key].some(item => value.includes(item.toLowerCase()))
-                        : value.includes(tile[key].toLowerCase());
+                        ? tile[key].includes('bookmatch')
+                        : false;
+
+                } else {
+                    // General case: compare active filter values against tile[key]
+                    const field = tile[key]; // may be null or undefined
+
+                    if (Array.isArray(field)) {
+                        // Safely handle array of strings/numbers
+                        return field.some(item =>
+                            value.includes((item || '').toString().toLowerCase())
+                        );
+                    }
+
+                    // If field is a single value, ensure it's non-null before comparing
+                    return field
+                        ? value.includes(field.toString().toLowerCase())
+                        : false;
                 }
             })
         );
+
 
         // Include all children of filtered parents
         const filteredTiles = [];
