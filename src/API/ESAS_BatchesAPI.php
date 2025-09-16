@@ -139,20 +139,25 @@ class ESAS_BatchesAPI {
 
         // Add only the fields needed is reference JSON
         $data = [
-            'id'            => $product->get_id(),
-            'title'         => $product->get_name(),
-            'price'         => $product->get_price(),
-            'quantity'      => self::getSqmBand($acf_trim['sqm']),
-            'image'         => wp_get_attachment_image_url($product->get_image_id(), 'medium'),
-            'effects'       => !empty($effects) ? $effects[0] : null,
-            'colour'        => $acf_trim['colour'] ?? null,
-            'finish'        => $acf_trim['finish'] ?? null,
-            'thickness'     => !empty($acf_trim['thickness']) ? $acf_trim['thickness'] . 'mm' : null,
-            'sizes' => isset($acf_trim['dimensions']) ? str_replace(' ', '', $acf_trim['dimensions']) : null,
-            'factory'       => $acf_trim['factory_name'] ?? null,
-            'product_code'  => $acf_trim['product_code'] ?? null,
-            'sqm'           => $acf_trim['sqm'] ?? null,
-            'menu_order'    => get_post_field('menu_order', $batch_id),
+            'id'                    => $product->get_id(),
+            'title'                 => $product->get_name(),
+            'price'                 => $product->get_price(),
+            'type'                  => self::getType($product),
+            'quantity'              => self::getSqmBand($acf_trim['sqm']),
+            'image'                 => wp_get_attachment_image_url($product->get_image_id(), 'medium'),
+            'effects'               => !empty($effects) ? $effects[0] : null,
+            'colour'                => $acf_trim['colour'] ?? null,
+            'finish'                => $acf_trim['finish'] ?? null,
+            'thickness'             => !empty($acf_trim['thickness']) ? $acf_trim['thickness'] . 'mm' : null,
+            'sizes'                 => isset($acf_trim['dimensions']) ? str_replace(' ', '', $acf_trim['dimensions']) : null,
+            'slip_rating'           => $acf_trim['slip_rating'] ?? null,
+            'factory'               => $acf_trim['factory_name'] ?? null,
+            'product_code'          => $acf_trim['product_code'] ?? null,
+            'batch_number'          => $acf_trim['batch_number'] ?? null,
+            'discount_percentage'   => $acf_trim['discount_percentage'] ?? null,
+            'usage'                 => self::setUsage(strtolower($acf_trim['finish'])),
+            'sqm'                   => $acf_trim['sqm'] ?? null,
+            'menu_order'            => get_post_field('menu_order', $batch_id),
         ];
 
         // Lowercase string fields
@@ -165,8 +170,52 @@ class ESAS_BatchesAPI {
         return $data;
     }
 
+    private static function setUsage($finish) {
 
-    protected static function getSqmBand( float $sqm ): string {
+        $usages = [
+            'Floor'        => ['natural', 'structured'],
+            'Wall'         => ['natural', 'polished', 'honed'],
+            'Wall & Floor' => ['natural'],
+            'Outdoor'      => ['grip'],
+        ];
+
+        $matchingUsage = [];
+        foreach ($usages as $key => $finishes) {
+            if (in_array($finish, $finishes, true)) {
+                $matchingUsage[] = $key;
+            }
+        }
+
+        return $matchingUsage;
+    }
+
+
+    private static function getType($product) {
+
+        // Variable to hold type value
+        $type = "";
+
+        // Extract shipping class from product
+        $shipping_class = $product->get_shipping_class();
+
+        // Set type basd on shipping class
+        if($shipping_class === "shipping-outdoor-tiles") {
+
+            $type = "tile";
+
+        } else if($shipping_class === "shipping-large-slabs") {
+
+            $type = "slab";
+
+        }
+
+        //Return type
+        return $type;
+
+    }
+
+
+    protected static function getSqmBand( float $sqm ) {
 
         $sqmBands = [
             // id       => [ max sqm, label ]

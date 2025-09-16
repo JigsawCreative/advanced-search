@@ -31,6 +31,7 @@ class TileFilter {
         this.loadBatches();
         this.activateFilters();
         this.liveTextSearch();
+        this.activateSorting();
     }
 
     async loadBatches() {
@@ -96,6 +97,53 @@ class TileFilter {
         // Update results regardless of whether there are active filters
         this.displayResults(true);
 
+    }
+
+    activateSorting = () => {
+
+        const sortEl = document.querySelector('.control-group .dropdown');
+
+        sortEl.addEventListener('click', () => {
+
+            const selectedText = sortEl.querySelector('.select span').textContent;
+
+            const dropdownMenu = sortEl.querySelectorAll('.dropdown-menu > li > a');
+
+            dropdownMenu.forEach(menuItem => {
+
+                if(menuItem.textContent == selectedText) {
+
+                    const sortingParams = menuItem.getAttribute('data-sort');
+
+                    this.applySort(sortingParams);
+                }
+
+            });
+
+        });
+
+    }
+
+    applySort(value) {
+        // value will be something like "menu-order:asc"
+        // Split if you need key + direction:
+        const [key, direction] = value.split(':');
+
+        // Convert key to camel case
+        const camelKey = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());;
+
+        // Example: sort elements with class .product-tile
+        const container = document.querySelector('.product-list');
+        const tiles = Array.from(container.children);
+
+        tiles.sort((a, b) => {
+        const aVal = parseFloat(a.dataset[camelKey]);
+        const bVal = parseFloat(b.dataset[camelKey]);
+        return direction === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+
+        tiles.forEach(tile => container.appendChild(tile));
+        
     }
 
     /** ---------------------------
@@ -312,9 +360,15 @@ class TileFilter {
                         ? tile[key].includes('bookmatch')
                         : false;
 
+                } else if(key === 'usage') {
+
+                    // Check for matching values between value array and JSON array as can be multiple matches
+                    return value.some(item => tile[key].includes(item));
+
                 } else {
+
                     // General case: compare active filter values against tile[key]
-                    const field = tile[key]; // may be null or undefined
+                    const field = tile[key]; 
 
                     if (Array.isArray(field)) {
                         // Safely handle array of strings/numbers
