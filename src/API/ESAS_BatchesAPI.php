@@ -18,8 +18,26 @@ class ESAS_BatchesAPI {
         add_action('deleted_post', [__CLASS__, 'clear_cache']);
     }
 
-    public static function clear_cache($post_id = null) {
-        delete_transient('esas_products_json');
+    public static function clear_cache() {
+
+        global $wpdb;
+
+        // Find all transient names starting with 'esas_'
+        $transients = $wpdb->get_col("
+            SELECT option_name 
+            FROM {$wpdb->options} 
+            WHERE option_name LIKE '_transient_esas_%'
+        ");
+
+        if (!empty($transients)) {
+            foreach ($transients as $transient) {
+
+                // Remove the '_transient_' prefix to get the actual transient name
+                $transient_name = str_replace('_transient_', '', $transient);
+                delete_transient($transient_name);
+                
+            }
+        }
     }
 
     public static function register_route() {
@@ -215,7 +233,7 @@ class ESAS_BatchesAPI {
     }
 
 
-    protected static function getSqmBand( float $sqm ) {
+    protected static function getSqmBand( $sqm ) {
 
         $sqmBands = [
             // id       => [ max sqm, label ]
@@ -225,7 +243,7 @@ class ESAS_BatchesAPI {
             'sqm-10-20'   => [ 'max' => 20, 'name' => '10-20 sqm' ],
             'sqm-20-30'   => [ 'max' => 30, 'name' => '20-30 sqm' ],
             'sqm-30-40'   => [ 'max' => 40, 'name' => '30-40 sqm' ],
-            'sqm-40-50'   => [ 'max' => 40, 'name' => '40-50 sqm' ],
+            'sqm-40-50'   => [ 'max' => 50, 'name' => '40-50 sqm' ],
             'sqm-50-plus' => [ 'max' => null, 'name' => '50+ sqm' ],
         ];
 
