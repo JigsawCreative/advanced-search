@@ -172,14 +172,14 @@ class ESAS_BatchesAPI {
             'factory'               => $acf_trim['factory_name'] ?? null,
             'product_code'          => $acf_trim['product_code'] ?? null,
             'batch_number'          => $acf_trim['batch_number'] ?? null,
-            'discount_percentage'   => $acf_trim['discount_percentage'] ?? null,
+            'discount'   => $acf_trim['discount_percentage'] ?? null,
             'usage'                 => self::setUsage(strtolower($acf_trim['finish'])),
             'sqm'                   => $acf_trim['sqm'] ?? null,
             'menu_order'            => get_post_field('menu_order', $batch_id),
         ];
 
         // Lowercase string fields
-        foreach (['effects', 'colour', 'finish', 'thickness', 'sizes', 'title', 'factory', 'product_code', 'sqm'] as $field) {
+        foreach (['effects', 'colour', 'finish', 'thickness', 'sizes', 'title', 'factory', 'product_code', 'sqm', 'slip_rating'] as $field) {
             if (!empty($data[$field]) && is_string($data[$field])) {
                 $data[$field] = strtolower($data[$field]);
             }
@@ -236,16 +236,22 @@ class ESAS_BatchesAPI {
     protected static function getSqmBand( $sqm ) {
 
         $sqmBands = [
-            // id       => [ max sqm, label ]
-            'sqm-0-1'     => [ 'max' => 1,  'name' => '0-1 sqm'   ],
-            'sqm-1-5'     => [ 'max' => 5,  'name' => '1-5 sqm'   ],
-            'sqm-5-10'    => [ 'max' => 10, 'name' => '5-10 sqm'  ],
-            'sqm-10-20'   => [ 'max' => 20, 'name' => '10-20 sqm' ],
-            'sqm-20-30'   => [ 'max' => 30, 'name' => '20-30 sqm' ],
-            'sqm-30-40'   => [ 'max' => 40, 'name' => '30-40 sqm' ],
-            'sqm-40-50'   => [ 'max' => 50, 'name' => '40-50 sqm' ],
-            'sqm-50-plus' => [ 'max' => null, 'name' => '50+ sqm' ],
-        ];
+                'sqm-0-1'       => [ 'max' => 1,  'name' => '0-1 sqm',   'order' => 0 ],
+                'sqm-1-5'       => [ 'max' => 5,  'name' => '1-5 sqm',   'order' => 1 ],
+                'sqm-5-10'      => [ 'max' => 10, 'name' => '5-10 sqm',  'order' => 2 ],
+                'sqm-10-20'     => [ 'max' => 20, 'name' => '10-20 sqm', 'order' => 3 ],
+                'sqm-20-30'     => [ 'max' => 30, 'name' => '20-30 sqm', 'order' => 4 ],
+                'sqm-30-40'     => [ 'max' => 40, 'name' => '30-40 sqm', 'order' => 5 ],
+                'sqm-40-50'     => [ 'max' => 50, 'name' => '40-50 sqm', 'order' => 6 ],
+                'sqm-40-50'     => [ 'max' => 50, 'name' => '40-50 sqm', 'order' => 7 ],
+                'sqm-50-60'     => [ 'max' => 60, 'name' => '50-60 sqm', 'order' => 8 ],
+                'sqm-60-70'     => [ 'max' => 70, 'name' => '60-70 sqm', 'order' => 9 ],
+                'sqm-70-80'     => [ 'max' => 80, 'name' => '70-80 sqm', 'order' => 10 ],
+                'sqm-80-90'     => [ 'max' => 90, 'name' => '80-90 sqm', 'order' => 11 ],
+                'sqm-90-100'    => [ 'max' => 100, 'name' => '90-100 sqm', 'order' => 12 ],
+                'sqm-100-150'   => [ 'max' => 150, 'name' => '100-150 sqm', 'order' => 13 ],
+                'sqm-150-plus'  => [ 'max' => null, 'name' => '150+ sqm','order' => 14 ],
+            ];
 
         foreach ( $sqmBands as $id => $band ) {
             // skip the “50+” row which has no max
@@ -254,7 +260,7 @@ class ESAS_BatchesAPI {
             }
         }
         // if nothing matched, return the final “plus” band
-        return 'sqm-50-plus';
+        return 'sqm-150-plus';
     }
 
 

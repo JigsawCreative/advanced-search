@@ -79,13 +79,15 @@ class TileFilter {
 
                     // Loop over active values
                     values.forEach(value => {
-
-                        if(key !== 'textsearch') {
-                            document.querySelector(`[data-toggle="${value}"]`).classList.add('mixitup-control-active');
-        
-                        } 
-
-                    })
+                        if (key !== 'textsearch') {
+                            const el = document.querySelector(`[data-toggle="${value}"]`);
+                            if (el) {
+                                el.classList.add('mixitup-control-active');
+                            } else {
+                                console.warn(`No element found for data-toggle="${value}"`);
+                            }
+                        }
+                    });
                 }
             }
 
@@ -485,6 +487,7 @@ class TileFilter {
 
         // Update total count
         this.countResults();
+
     };
     
     /**
@@ -634,12 +637,44 @@ class TileFilter {
         const startIndex = (page - 1) * perPage + 1;
         const endIndex = Math.min(page * perPage, totalParents);
 
-        const displayText = totalParents > 0
-            ? `${startIndex} to ${endIndex} of ${totalParents}`
-            : "0";
+        // No results text
+        const noResults = document.querySelector('.no-results');
 
-        document.querySelectorAll('.mixitup-page-stats')
-            .forEach(resultBox => resultBox.textContent = displayText);
+        // Pagination controls
+        const pagination = document.querySelector('.controls-pagination');
+
+        // Batch count items
+        const pageStats = document.querySelectorAll('.mixitup-page-stats');
+
+        let displayText;
+        
+        if(totalParents > 0) {
+
+            displayText = `${startIndex} to ${endIndex} of ${totalParents}`;
+
+            // Display no results message
+            noResults.style.display = 'none';
+
+            // Hide pagination controls
+            pagination.style.display = 'block';
+    
+            pageStats.forEach(resultBox => resultBox.textContent = displayText);
+
+        } else {
+
+            displayText = 0;
+
+            // Display no results message
+            noResults.style.display = 'block';
+
+            // Hide pagination controls
+            pagination.style.display = 'none';
+
+            // Hide batch count items
+            pageStats.forEach(resultBox => resultBox.style.display = 'none');
+
+        }
+  
     };
 
     /** ---------------------------

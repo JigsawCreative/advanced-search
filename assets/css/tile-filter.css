@@ -45,3 +45,9 @@ li.show {
 .product-list>li.displaynoneclass {
 	display: none;
 }
+
+.no-results {
+	display: none;
+	text-align: center;
+    margin-top: 1rem;
+}
