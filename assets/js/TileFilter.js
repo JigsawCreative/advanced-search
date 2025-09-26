@@ -746,67 +746,223 @@ class TileFilter {
 
     }
 
-    addPaginationButtons = () => {
+    /**
+     * 
+     * determine which pages to show
+     * includes first, last, current, neighbors, and extra pages at edges
+     * @param {*} total 
+     * @param {*} current 
+     * @returns 
+     */
+    _getCondensedPages(total, current) {
 
-        const paginationContainer = document.querySelector('.mixitup-page-list');
-        if (!paginationContainer) return;
+        const pages = new Set([1, total, current]);
 
-        // Clear existing buttons except prev/next if desired
-        paginationContainer.innerHTML = '';
+        // previous page
+        if (current > 1) pages.add(current - 1);   
 
-        const totalPages = Object.keys(this.state.pagination.pages).length;
-        const currentPage = this.state.pagination.page;
+        // next page
+        if (current < total) pages.add(current + 1); 
 
-        // Helper to create button
-        const createButton = (label, page, extraClasses = '') => {
+        // If on first page, add extra neighbors
+        if (current === 1 && total > 3) pages.add(2).add(3);
 
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = label;
-            btn.className = `mixitup-control ${extraClasses}`.trim();
-            btn.dataset.page = page;
+        // If on last page, add extra neighbors
+        if (current === total && total > 3) pages.add(total - 1).add(total - 2);
 
-            btn.addEventListener('click', () => {
+        // return sorted array
+        return [...pages].sort((a, b) => a - b); 
 
-                let newPage = page;
+    }
 
-                if (page === 'prev') {
-                    newPage = Math.max(currentPage - 1, 1);
-                } else if (page === 'next') {
-                    newPage = Math.min(currentPage + 1, totalPages);
-                } else {
-                    newPage = parseInt(page, 10);
-                }
+    /**
+     * 
+     * create a button element
+     * attaches click handler to update pagination state and scroll to top
+     * @param {string} label 
+     * @param {*} page 
+     * @param {string} extraClasses 
+     * @returns 
+     */
+    _createPaginationButton(label, page, extraClasses = '') {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.className = `mixitup-control ${extraClasses}`.trim();
+        btn.dataset.page = page;
 
-                this.state.pagination.page = newPage;
+        btn.addEventListener('click', () => {
+            const newPage = this._resolvePage(page);
 
-                // Show correct tiles for this page
-                this.displayResults();
+            // Scroll smoothly to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
-                // Update active button classes
-                this.updatePaginationActiveState();
+            // Update state
+            this.state.pagination.page = newPage;
 
-            });
+            // Display new results (assumes this method exists)
+            this.displayResults();
 
-            return btn;
-        };
+            // Update active button styling
+            this.updatePaginationActiveState();
+        });
 
-        // Create prev button
-        paginationContainer.appendChild(
-            createButton('«', 'prev', 'mixitup-control-prev')
+        return btn;
+    }
+
+    /**
+     * resolve page number from button input
+     * handles 'prev', 'next', or numeric pages
+     * @param {string|number} page 
+     * @returns {number} The page number to navigate to
+     */
+    _resolvePage(page) {
+        const { page: current } = this.state.pagination;
+        const total = Object.keys(this.state.pagination.pages).length;
+        if (page === 'prev') return Math.max(current - 1, 1);
+        if (page === 'next') return Math.min(current + 1, total);
+        return parseInt(page, 10);
+    }
+
+    // --- your main method below ---
+    addPaginationButtons() {
+        const container = document.querySelector('.mixitup-page-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        const total   = Object.keys(this.state.pagination.pages).length;
+        const current = this.state.pagination.page;
+
+        container.appendChild(
+            this._createPaginationButton('«', 'prev', 'mixitup-control-prev')
         );
 
-        // Create page number buttons
-        for (let i = 1; i <= totalPages; i++) {
-            const extraClass = i === currentPage ? 'mixitup-control-active' : '';
-            paginationContainer.appendChild(createButton(i, i, extraClass));
-        }
+        this._getCondensedPages(total, current).forEach(i => {
+            const isFirst = i === 1;
+            const isLast  = i === total;
+            const label   = isFirst ? 'First' : isLast ? 'Last' : i;
+            const classes = [
+                i === current && 'mixitup-control-active',
+                isFirst && 'first-page-btn',
+                isLast && 'last-page-btn'
+            ].filter(Boolean).join(' ');
+            container.appendChild(this._createPaginationButton(label, i, classes));
+        });
 
-        // Create next button
-        paginationContainer.appendChild(
-            createButton('»', 'next', 'mixitup-control-next')
+        container.appendChild(
+            this._createPaginationButton('»', 'next', 'mixitup-control-next')
         );
-    };
+    }
+
+    // addPaginationButtons = () => {
+
+    //     const paginationContainer = document.querySelector('.mixitup-page-list');
+    //     if (!paginationContainer) return;
+
+    //     // Clear existing buttons except prev/next if desired
+    //     paginationContainer.innerHTML = '';
+
+    //     const totalPages = Object.keys(this.state.pagination.pages).length;
+    //     const currentPage = this.state.pagination.page;
+
+    //      // ---------- new helper ----------
+    //     const getCondensedPages = (total, current) => {
+    //         const pages = new Set();
+
+    //         pages.add(1);            // always show first
+    //         pages.add(total);        // always show last
+    //         pages.add(current);      // current
+
+    //         if (current > 1) pages.add(current - 1);
+    //         if (current < total) pages.add(current + 1);
+
+    //         // If we're at the very start, show one extra after current+1
+    //         if (current === 1 && total > 3) {
+    //             pages.add(2);
+    //             pages.add(3);
+    //         }
+
+    //         // If we're at the very end, show one extra before current-1
+    //         if (current === total && total > 3) {
+    //             pages.add(total - 1);
+    //             pages.add(total - 2);
+    //         }
+
+    //         return [...pages].sort((a, b) => a - b);
+    //     };
+
+    //     // Helper to create button
+    //     const createButton = (label, page, extraClasses = '') => {
+
+    //         const btn = document.createElement('button');
+    //         btn.type = 'button';
+    //         btn.textContent = label;
+    //         btn.className = `mixitup-control ${extraClasses}`.trim();
+    //         btn.dataset.page = page;
+
+    //         btn.addEventListener('click', () => {
+
+    //             let newPage = page;
+
+    //             if (page === 'prev') {
+    //                 newPage = Math.max(currentPage - 1, 1);
+    //             } else if (page === 'next') {
+    //                 newPage = Math.min(currentPage + 1, totalPages);
+    //             } else {
+    //                 newPage = parseInt(page, 10);
+    //             }
+
+    //             // Scroll to top of page
+    //             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    //             this.state.pagination.page = newPage;
+
+    //             // Show correct tiles for this page
+    //             this.displayResults();
+
+    //             // Update active button classes
+    //             this.updatePaginationActiveState();
+
+    //         });
+
+    //         return btn;
+    //     };
+
+    //     // Create prev button
+    //     paginationContainer.appendChild(
+    //         createButton('«', 'prev', 'mixitup-control-prev')
+    //     );
+
+    //     // Pages with “first/last” labels
+    //     const pagesToShow = getCondensedPages(totalPages, currentPage);
+
+    //     pagesToShow.forEach(i => {
+    //         // start with "active" if it’s the current page
+    //         let extraClass = i === currentPage ? 'mixitup-control-active' : '';
+
+    //         // add explicit classes for first/last so we can style width/padding
+    //         if (i === 1) {
+    //             extraClass += ' first-page-btn';
+    //         }
+    //         if (i === totalPages) {
+    //             extraClass += ' last-page-btn';
+    //         }
+
+    //         // choose label
+    //         const label = (i === 1) ? 'First' :
+    //                     (i === totalPages) ? 'Last' :
+    //                     i;
+
+    //         paginationContainer.appendChild(createButton(label, i, extraClass.trim()));
+    //     });
+
+
+    //     // Create next button
+    //     paginationContainer.appendChild(
+    //         createButton('»', 'next', 'mixitup-control-next')
+    //     );
+    // };
 
     /**
      * Updates the pagination buttons to reflect the current active page.
