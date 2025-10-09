@@ -8,6 +8,7 @@ use WP_Query;
 class ESAS_BatchesAPI {
 
     public static function init() {
+
         // Register API routes on init
         add_action('rest_api_init', [__CLASS__, 'register_route']);
 
@@ -16,6 +17,7 @@ class ESAS_BatchesAPI {
         // add_action('save_post_product', [__CLASS__, 'clear_cache']);
         add_action('trashed_post', [__CLASS__, 'clear_cache']);
         add_action('deleted_post', [__CLASS__, 'clear_cache']);
+
     }
 
     public static function clear_cache() {
@@ -155,13 +157,19 @@ class ESAS_BatchesAPI {
         // Get effects data (returns array, we only want one entry)
         $effects = wp_get_post_terms($batch_id, 'effect', ['fields' => 'names']);
 
+        $sqm_per_carton = (float) $acf_trim['sqm_per_carton'];
+
+        $qty = (int) $product->get_stock_quantity();
+
+        $sqm = $qty * $sqm_per_carton;
+
         // Add only the fields needed is reference JSON
         $data = [
             'id'                    => $product->get_id(),
             'title'                 => $product->get_name(),
             'price'                 => $product->get_price(),
             'type'                  => self::getType($product),
-            'quantity'              => self::getSqmBand($acf_trim['sqm']),
+            'quantity'              => self::getSqmBand($sqm),
             'image'                 => wp_get_attachment_image_url($product->get_image_id(), 'medium'),
             'effects'               => !empty($effects) ? $effects[0] : null,
             'colour'                => $acf_trim['colour'] ?? null,
@@ -172,14 +180,14 @@ class ESAS_BatchesAPI {
             'factory'               => $acf_trim['factory_name'] ?? null,
             'product_code'          => $acf_trim['product_code'] ?? null,
             'batch_number'          => $acf_trim['batch_number'] ?? null,
-            'discount'   => $acf_trim['discount_percentage'] ?? null,
+            'discount'              => $acf_trim['discount_percentage'] ?? null,
             'usage'                 => self::setUsage(strtolower($acf_trim['finish'])),
-            'sqm'                   => $acf_trim['sqm'] ?? null,
+            'sqm'                   => $sqm ?? null,
             'menu_order'            => get_post_field('menu_order', $batch_id),
         ];
 
         // Lowercase string fields
-        foreach (['effects', 'colour', 'finish', 'thickness', 'sizes', 'title', 'factory', 'product_code', 'sqm', 'slip_rating'] as $field) {
+        foreach (['effects', 'colour', 'finish', 'thickness', 'sizes', 'title', 'factory', 'product_code', 'slip_rating'] as $field) {
             if (!empty($data[$field]) && is_string($data[$field])) {
                 $data[$field] = strtolower($data[$field]);
             }
@@ -231,7 +239,6 @@ class ESAS_BatchesAPI {
         return $type;
 
     }
-
 
     protected static function getSqmBand( $sqm ) {
 
